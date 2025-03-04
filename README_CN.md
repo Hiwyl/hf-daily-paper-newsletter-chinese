@@ -82,8 +82,8 @@
 
 ## ⭐ Star 历史
 
-[![Star History Chart](https://api.star-history.com/svg?repos=2404589803/hf-daily-paper-newsletter-chinese&type=Date)](https://star-history.com/#2404589803/hf-daily-paper-newsletter-chinese&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Hiwyl/hf-daily-paper-newsletter-chinese&type=Date)](https://star-history.com/#Hiwyl/hf-daily-paper-newsletter-chinese&Date)
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 
+本项目采用 MIT 许可证

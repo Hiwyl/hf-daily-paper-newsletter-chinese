@@ -82,7 +82,7 @@ This bot automatically collects paper information from [🤗 Daily Papers](https
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=2404589803/hf-daily-paper-newsletter-chinese&type=Date)](https://star-history.com/#2404589803/hf-daily-paper-newsletter-chinese&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Hiwyl/hf-daily-paper-newsletter-chinese&type=Date)](https://star-history.com/#Hiwyl/hf-daily-paper-newsletter-chinese&Date)
 
 ## 📄 License
 

@@ -31,7 +31,7 @@ def init_api_client():
             raise ValueError("原始仓库中未设置 DEEPSEEK_API_KEY 环境变量")
         else:
             raise ValueError("Fork仓库需要在 Settings -> Secrets -> Actions 中设置您自己的 DEEPSEEK_API_KEY")
-    
+
     # 初始化客户端
     return OpenAI(
         api_key=api_key,
@@ -53,7 +53,7 @@ def call_deepseek_api(prompt):
         # 获取配置的模型名称
         model_name = get_model_name()
         logger.info(f"使用模型: {SUPPORTED_MODELS.get(model_name, model_name)}")
-        
+
         result = client.chat.completions.create(
             model=model_name,
             messages=[
@@ -83,11 +83,11 @@ def create_poster(results, date_str, output_folder):
     primary_color = (255, 172, 51)  # HF 黄色
     secondary_color = (48, 76, 125)  # HF 蓝色
     text_color = (0, 0, 0)  # 黑色文字
-    
+
     # 创建一个临时图像用于文本测量
     temp_image = Image.new('RGB', (width, 100), background_color)
     draw_test = ImageDraw.Draw(temp_image)
-    
+
     # 加载字体
     try:
         if os.name == 'nt':  # Windows
@@ -105,7 +105,7 @@ def create_poster(results, date_str, output_folder):
             
             title_font = None
             content_font = None
-            
+
             for font_path in font_paths:
                 if os.path.exists(font_path):
                     try:
@@ -115,10 +115,10 @@ def create_poster(results, date_str, output_folder):
                         break
                     except Exception as e:
                         print(f"尝试加载字体 {font_path} 失败：{e}")
-            
+
             if title_font is None or content_font is None:
                 raise Exception("未能找到可用的中文字体")
-                
+
     except Exception as e:
         print(f"字体加载错误: {e}")
         print("使用默认字体")
@@ -128,28 +128,28 @@ def create_poster(results, date_str, output_folder):
     # 计算所需的总高度
     y = 320  # 增加起始位置
     required_height = y  # 初始高度（包含顶部空间）
-    
+
     # 预计算每篇论文所需的高度
     for result in results:
         # 提取中文标题和摘要
         translation = result.get("translation", "")
-        
+
         # 使用更严格的正则表达式提取标题和摘要
         title_match = re.search(r"标题[:：]\s*([^\n]+)(?=\s*\n\s*摘要[:：]|\Z)", translation, re.DOTALL)
         summary_match = re.search(r"摘要[:：]\s*([^\n].+?)(?=\s*(?:\n\s*[^：\n]+[:：]|\Z))", translation, re.DOTALL)
-        
+
         if not title_match:
             title_match = re.search(r"^([^\n]+)\n\s*摘要[:：]", translation, re.MULTILINE)
-        
+
         title = (title_match.group(1) if title_match else "无标题").strip()
         summary = (summary_match.group(1) if summary_match else "").strip()
-        
+
         if not summary and '摘要：' in translation:
             summary = translation.split('摘要：', 1)[1].strip()
-        
+
         if not summary:
             summary = "无摘要"
-            
+
         # 计算标题行数
         title_lines = []
         current_line = ""
@@ -164,7 +164,7 @@ def create_poster(results, date_str, output_folder):
                 current_line = word
         if current_line:
             title_lines.append(current_line)
-            
+
         # 计算摘要行数
         summary_lines = []
         current_line = ""
@@ -175,77 +175,77 @@ def create_poster(results, date_str, output_folder):
                 current_line = ""
         if current_line:
             summary_lines.append(current_line)
-            
+
         # 计算这篇论文需要的高度
         paper_height = 120  # 增加基础高度（包含边距）
         paper_height += len(title_lines) * 60  # 增加标题行高
         paper_height += len(summary_lines) * 56  # 增加摘要行高
         paper_height += 80  # 增加额外边距
-        
+
         required_height += paper_height
-    
+
     # 添加底部边距和页脚空间
     required_height += 160
-    
+
     # 确保最小高度
     height = max(min_height, required_height)
-    
+
     # 释放临时资源
     del draw_test
     del temp_image
-    
+
     # 创建适应内容的新图像
     image = Image.new('RGB', (width, height), background_color)
     draw = ImageDraw.Draw(image)
-    
+
     # 绘制顶部装饰条
     draw.rectangle([0, 0, width, 240], fill=primary_color)  # 增加顶部装饰条高度
-    
+
     # 绘制标题
     title = f"Hugging Face {date_str} 论文日报"
     title_bbox = draw.textbbox((0, 0), title, font=title_font)
     title_width = title_bbox[2] - title_bbox[0]
-    
+
     # 使用 HF logo
     try:
         logo_size = (96, 96)  # 增加 logo 大小
         logo_path = "hf_logo.png"
         logo = Image.open(logo_path).convert('RGBA')
         logo = logo.resize(logo_size, Image.Resampling.LANCZOS)
-        
+
         total_width = logo_size[0] + 20 + title_width  # 增加 logo 和标题间距
         start_x = (width - total_width) // 2
-        
+
         image.paste(logo, (start_x, 72), logo)  # 调整 logo 位置
         draw.text((start_x + logo_size[0] + 20, 80), title, font=title_font, fill=(255, 255, 255))  # 调整标题位置
     except Exception as e:
         print(f"Logo加载错误: {e}")
         draw.text(((width - title_width) // 2, 80), title, font=title_font, fill=(255, 255, 255))
-    
+
     # 绘制内容
     y = 320  # 增加内容起始位置
     for i, result in enumerate(results):
         # 提取中文标题和摘要
         translation = result.get("translation", "")
-        
+
         title_match = re.search(r"标题[:：]\s*([^\n]+)(?=\s*\n\s*摘要[:：]|\Z)", translation, re.DOTALL)
         summary_match = re.search(r"摘要[:：]\s*([^\n].+?)(?=\s*(?:\n\s*[^：\n]+[:：]|\Z))", translation, re.DOTALL)
-        
+
         if not title_match:
             title_match = re.search(r"^([^\n]+)\n\s*摘要[:：]", translation, re.MULTILINE)
-        
+
         title = (title_match.group(1) if title_match else "无标题").strip()
         summary = (summary_match.group(1) if summary_match else "").strip()
-        
+
         if not summary and '摘要：' in translation:
             summary = translation.split('摘要：', 1)[1].strip()
-        
+
         if not summary:
             summary = "无摘要"
-        
+
         # 创建论文卡片背景
         card_start_y = y
-        
+
         # 计算卡片实际需要的高度
         title_lines = []
         current_line = ""
@@ -260,7 +260,7 @@ def create_poster(results, date_str, output_folder):
                 current_line = word
         if current_line:
             title_lines.append(current_line)
-        
+
         summary_lines = []
         current_line = ""
         for char in summary:
@@ -270,15 +270,15 @@ def create_poster(results, date_str, output_folder):
                 current_line = ""
         if current_line:
             summary_lines.append(current_line)
-        
+
         # 计算这篇论文的实际高度
         card_height = 120  # 增加基础高度
         card_height += len(title_lines) * 60  # 增加标题行高
         card_height += len(summary_lines) * 56  # 增加摘要行高
-        
+
         # 绘制卡片背景
         draw.rectangle([80, y, width-80, y+card_height], fill=(255, 255, 255))  # 调整卡片边距
-        
+
         # 绘制序号
         circle_x = 160  # 调整序号位置
         circle_y = y + 60
@@ -287,27 +287,27 @@ def create_poster(results, date_str, output_folder):
                      circle_x+circle_radius, circle_y+circle_radius],
                     fill=secondary_color)
         draw.text((circle_x, circle_y), str(i+1), font=content_font, fill=(255, 255, 255), anchor="mm")
-        
+
         # 绘制标题
         title_x = 280  # 调整标题起始位置
         title_y = y + 40
         for i, line in enumerate(title_lines):
             draw.text((title_x, title_y + i*60), line, font=content_font, fill=text_color)
-        
+
         # 绘制摘要
         summary_y = title_y + len(title_lines)*60 + 40
         for line in summary_lines:
             draw.text((160, summary_y), line, font=content_font, fill=text_color)  # 调整摘要起始位置
             summary_y += 56
-        
+
         y += card_height + 30  # 更新下一个卡片的起始位置
-    
+
     # 添加底部信息
     footer = "Generated by DeepSeek"
     footer_bbox = draw.textbbox((0, 0), footer, font=content_font)
     footer_width = footer_bbox[2] - footer_bbox[0]
     draw.text(((width - footer_width) // 2, height - 80), footer, font=content_font, fill=text_color)
-    
+
     # 保存图片
     os.makedirs(output_folder, exist_ok=True)
     output_path = os.path.join(output_folder, f"{date_str}_poster.png")
@@ -327,30 +327,30 @@ def process_papers(date_str=None):
             beijing_tz = pytz.timezone('Asia/Shanghai')
             current_time = datetime.datetime.now(beijing_tz)
             date_str = current_time.strftime('%Y-%m-%d')
-        
+
         logger.info(f"正在处理 {date_str} 的论文数据")
-        
+
         # 读取论文数据
         input_file = os.path.join('Paper_metadata_download', f"{date_str}.json")
         if not os.path.exists(input_file):
             logger.error(f"找不到 {date_str} 的论文数据文件")
             return False
-            
+
         with open(input_file, 'r', encoding='utf-8') as f:
             papers = json.load(f)
-        
+
         if not papers:
             logger.warning(f"{date_str} 没有可用的论文数据")
             return False
-            
+
         logger.info(f"读取到 {len(papers)} 篇论文数据")
-        
+
         # 创建输出目录
         os.makedirs('HF-day-paper-deepseek', exist_ok=True)
         os.makedirs('posters', exist_ok=True)
         os.makedirs('newsletters', exist_ok=True)
         os.makedirs('audio', exist_ok=True)
-        
+
         # 检查是否存在中间结果文件
         temp_file = os.path.join('HF-day-paper-deepseek', f"{date_str}_temp.json")
         if os.path.exists(temp_file):
@@ -366,10 +366,10 @@ def process_papers(date_str=None):
         else:
             results = []
             processed_titles = set()
-        
+
         success_count = len(results)
         error_count = 0
-        
+
         # 处理每篇论文
         for index, paper in enumerate(papers, 1):
             try:
@@ -379,36 +379,36 @@ def process_papers(date_str=None):
                     logger.warning(f"第 {index} 篇论文数据缺失")
                     error_count += 1
                     continue
-                    
+
                 title = paper_data.get('title', '')
                 summary = paper_data.get('summary', '')
                 paper_id = paper_data.get('id', '')
                 url = f"https://huggingface.co/papers/{paper_id}"
                 arxiv_url = f"https://arxiv.org/abs/{paper_id}" if paper_id else ""
-                
+
                 # 检查是否已处理过
                 if title in processed_titles:
                     logger.info(f"第 {index} 篇论文已处理过，跳过")
                     continue
-                
+
                 if not title or not summary:
                     logger.warning(f"第 {index} 篇论文标题或摘要缺失")
                     error_count += 1
                     continue
-                
+
                 logger.info(f"正在处理第 {index}/{len(papers)} 篇论文")
-                
+
                 # 构建提示
                 prompt = f"""请将以下论文标题和摘要翻译成中文，保持学术性和专业性：
-                
+
                 标题：{title}
-                
+
                 摘要：{summary}
-                
+
                 请按照以下格式返回：
                 标题：[中文标题]
                 摘要：[中文摘要]"""
-                
+
                 # 调用API进行翻译，带有重试机制
                 max_retries = 3
                 retry_count = 0
@@ -417,20 +417,20 @@ def process_papers(date_str=None):
                         logger.info(f"正在翻译第 {index} 篇论文 (尝试 {retry_count + 1}/{max_retries})")
                         response = call_deepseek_api(prompt)
                         translation = response.choices[0].message.content
-                        
+
                         # 验证翻译结果
                         if translation and '标题：' in translation and '摘要：' in translation:
                             break
                         else:
                             raise ValueError("翻译结果格式不正确")
-                            
+
                     except Exception as e:
                         retry_count += 1
                         if retry_count == max_retries:
                             raise
                         logger.warning(f"第 {index} 篇论文翻译失败，将在 {2 ** retry_count} 秒后重试: {str(e)}")
                         time.sleep(2 ** retry_count)
-                
+
                 # 保存结果
                 result = {
                     "title": title,
@@ -442,52 +442,52 @@ def process_papers(date_str=None):
                 results.append(result)
                 processed_titles.add(title)
                 success_count += 1
-                
+
                 # 保存中间结果
                 with open(temp_file, 'w', encoding='utf-8') as f:
                     json.dump(results, f, ensure_ascii=False, indent=2)
-                
+
                 logger.info(f"第 {index} 篇论文处理成功")
-                
+
                 # 增加API调用间隔，避免限制
                 time.sleep(3)
-                
+
             except Exception as e:
                 logger.error(f"处理第 {index} 篇论文时发生错误: {str(e)}")
                 error_count += 1
                 continue
-        
+
         logger.info(f"论文处理统计：总数 {len(papers)}，成功 {success_count}，失败 {error_count}")
-        
+
         # 处理完成后，保存最终结果
         output_file = os.path.join('HF-day-paper-deepseek', f"{date_str}_HF_deepseek_clean.json")
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
-        
+
         # 删除中间文件
         if os.path.exists(temp_file):
             os.remove(temp_file)
-        
+
         # 如果成功处理了论文，继续生成其他内容
         if results:
             # 生成海报
             create_poster(results, date_str, 'posters')
-            
+
             # 生成统计数据
             analyze_papers()
-            
+
             # 生成通讯
             newsletter_gen = NewsletterGenerator()
             newsletter_gen.generate_newsletter(date_str)
-            
+
             # 生成音频
             generate_daily_paper_audio(date_str)
-            
+
             return True
         else:
             logger.error("没有成功处理任何论文")
             return False
-            
+
     except Exception as e:
         logger.error(f"处理论文时发生错误: {str(e)}")
         return False
@@ -502,4 +502,4 @@ if __name__ == "__main__":
     success = process_papers(args.date)
     if not success:
         exit(1)
-    exit(0) 
+    exit(0)
